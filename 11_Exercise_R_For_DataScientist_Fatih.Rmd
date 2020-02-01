@@ -1,0 +1,121 @@
+---
+title: "11_Exercise_R_For_DataScientist"
+author: "Ghilman Al Fatih"
+date: "1/27/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('tidyverse')
+```
+
+## ------------------- 11.2.2 Exercise -------------------------
+# 1. What function would you use to read a file where fields were separated with `|`?
+`read_delim('name file.txt', delim = '|')`
+
+# 2. Apart from `file`, `skip`, and `comment`, what other arguments do `read_csv()` and `read_tsv()` have in common?
+`quote`, `escape_backslash`, `escape_double`, `col_names`, `col_types`, `locale`, `na`, `quoted_na`, `trim_ws`, `n_max`, `guess_max`, `progress`, `skip_empty_rows`
+
+# 3. What are the most important arguments to `read_fwf()`?
+the most important argument is `col_positions` because its specify column position on text file where you define that as a value
+
+# 4. Sometimes strings in a CSV file contain commas. To prevent them from causing problems they need to be surrounded by a quoting character, like " or '. By convention, `read_csv()` assumes that the quoting character will be ", and if you want to change it you’ll need to use `read_delim()` instead. What arguments do you need to specify to read the following text into a data frame?
+```{r soal_4_code, echo=TRUE}
+file <- "x,y\n1,'a,b'"
+read_csv(file, quote = "'")
+```
+
+# 5. Identify what is wrong with each of the following inline CSV files. What happens when you run the code?
+```{r soal_5, echo=FALSE}
+#Last column dropped, no column name
+read_csv("a,b\n1,2,3\n4,5,6") 
+
+#Last column on row one become NA, fourth column on second row dropped cause there are only three column
+read_csv("a,b,c\n1,2\n1,2,3,4") 
+
+#NA Value on last column because lack of data, and also the quote is ambiguous, so it's treated as doubles, not char
+read_csv("a,b\n\"1")
+
+#because last row is char, so the first row treated as char too even without quotation
+read_csv("a,b\n1,2\na,b")
+
+#because this is csv, not csv2, the `;` is not treated as delimiter
+read_csv("a;b\n1;3")
+```
+
+
+## ------------------- 11.3.5 Exercise -------------------------
+# 1. What are the most important arguments to `locale()`?
+`encoding` for text
+`decimal_mark` and `grouping_mark` for number
+`tz` for time zone
+`date_names`, `date_format`, `time_format` for date and time format or language
+
+# 2. What happens if you try and set `decimal_mark` and `grouping_mark` to the same character? What happens to the default value of `grouping_mark` when you set `decimal_mark` to “,”? What happens to the default value of `decimal_mark` when you set the `grouping_mark` to “.”?
+```{r soal_2_code, echo=FALSE}
+# same decimal and grouping mark, ERROR
+# locale(grouping_mark = ".", decimal_mark = ".")
+
+# set decimal mark to "," -> grouping_mark become "." by default
+locale(decimal_mark = ",")
+
+# set grouping mark to "," -> decimal mark become "." by default
+locale(grouping_mark = ",")
+```
+
+# 3. I didn’t discuss the `date_format` and `time_format` options to `locale()`. What do they do? Construct an example that shows when they might be useful.
+It's useful to change date or time format to usual format used in your place.
+```{r soal_3_code, echo=TRUE}
+# indonesian format of date and time
+idn_locale <- locale(date_format = "%d/%m/%Y", 
+                     time_format = "%H/%M/%S", 
+                     date_names(day = c("Minggu (Min)", "Senin (Sen)", "Selasa (Tue)", "Rabu (Rab)", "Kamis (Kam)", "Jumat (Jum)", "Sabtu (Sab)"),
+                                mon = c("Januari (Jan)", "Februari (Feb)", "Maret (Mar)", "April (Apr)",
+                                        "Mei (Mei)", "Juni (Jun)", "Juli (Jul)", "Agustus (Agu)", "September (Sep)",
+                                        "Oktober (Okt)", "November (Nov)", "Desember (Des)")),
+                     decimal_mark = ",",
+                     grouping_mark = ".",
+                     tz = "Asia/Jakarta"
+                     )
+parse_date("03/02/2016", locale = idn_locale)
+
+#default
+parse_date("2016-02-03") #default US
+parse_date("03/02/2016") #Error, can't read Indonesian format
+
+```
+
+# 4. If you live outside the US, create a new locale object that encapsulates the settings for the types of file you read most commonly.
+I've already created it before, for date, date_name, and time
+```{r soal_4_code, echo=TRUE}
+idn_locale
+```
+
+# 5. What’s the difference between `read_csv()` and `read_csv2()`?
+`read_csv()` use comma
+`read_csv2` use ";" (semicolon)
+
+# 6. What are the most common encodings used in Europe? What are the most common encodings used in Asia? Do some googling to find out.
+most common encoding in the world: UTF-8
+most common in Europe: UTF-8, ISO 8859
+most common in Asia: UTF-8
+
+# 7. Generate the correct format string to parse each of the following dates and times:
+```{r soal_7_code, echo=TRUE}
+d1 <- "January 1, 2010"
+d2 <- "2015-Mar-07"
+d3 <- "06-Jun-2017"
+d4 <- c("August 19 (2015)", "July 1 (2015)")
+d5 <- "12/30/14" # Dec 30, 2014
+t1 <- "1705"
+t2 <- "11:15:10.12 PM"
+
+parse_date(d1, "%B %d, %Y")
+parse_date(d2, "%Y-%b-%d")
+parse_date(d3, "%d-%b-%Y")
+parse_date(d4, "%B %d (%Y)")
+parse_date(d5, "%m/%d/%y")
+parse_time(t1, "%H%M")
+parse_time(t2, "%H:%M:%OS %p")
+```

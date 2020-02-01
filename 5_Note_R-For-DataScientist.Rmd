@@ -1,0 +1,191 @@
+---
+title: "5_Notes_R-For-DataScientist"
+author: "Ghilman Al Fatih"
+date: "1/23/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('tidyverse')
+library('nycflights13')
+```
+
+## ==== important notes NA ====
+```{r important notes, echo = FALSE}
+# 2 == 2 (FALSE)????
+sqrt(2)^2 == 2 # FALSE
+near(sqrt(2)^2, 2) # TRUE
+
+1/49*49 == 1 #FALSE
+near(1/49*49,1) # TRUE
+
+# weird NA Behaviour
+NA == 5  # NA (in python the output is False)
+NA != 5  # NA (in python the output is True)
+NA == NA # NA (in python the output is False)  | use is.na() instead
+
+# explicitly include NA when you want NA in your result
+df <- tibble(x = c(1, NA, 3))
+filter(df, x > 1)
+#> # A tibble: 1 x 1
+#>       x
+#>   <dbl>
+#> 1     3
+filter(df, is.na(x) | x > 1)
+#> # A tibble: 2 x 1
+#>       x
+#>   <dbl>
+#> 1    NA
+#> 2     3
+```
+
+
+## ==== important notes arrange NA ====
+```{r arrange,echo = FALSE}
+# sort by year, then month, then day
+arrange(flights, year, month, day)
+# sort by dep_delay DESC
+arrange(flights, desc(dep_delay))
+# NA always sorted at the end
+df <- tibble(x = c(5, 2, NA))
+arrange(df, x)
+#> # A tibble: 3 x 1
+#>       x
+#>   <dbl>
+#> 1     2
+#> 2     5
+#> 3    NA
+arrange(df, desc(x))
+#> # A tibble: 3 x 1
+#>       x
+#>   <dbl>
+#> 1     5
+#> 2     2
+#> 3    NA
+```
+
+
+## ==== important notes rename ====
+```{r coba, echo=FALSE}
+rename(flights, tail_num = tailnum) # rename tailnum to tail_num
+```
+
+## ==== important notes operator ====
+```{r operator, echo=FALSE}
+# --- Arithmetic and Log ---
+%/% # floor division
+%% # mod
+log(), log2(), log10() #ln, log2, log10
+
+# --- Offset ---
+(x <- 1:10)
+#>  [1]  1  2  3  4  5  6  7  8  9 10
+lag(x)
+#>  [1] NA  1  2  3  4  5  6  7  8  9
+lead(x)
+#>  [1]  2  3  4  5  6  7  8  9 10 NA
+
+# --- Cumulative ---
+cumsum() #cumulative sum
+cumprod() #cumulative products
+cummin() #cumulative min
+cummax() #cumulative max
+cummean() #cumulative mean
+
+x
+#>  [1]  1  2  3  4  5  6  7  8  9 10
+cumsum(x)
+#>  [1]  1  3  6 10 15 21 28 36 45 55
+cummean(x)
+#>  [1] 1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0 5.5
+
+# --- Ranking ---
+y <- c(1, 2, 2, NA, 3, 4)
+min_rank(y)
+#> [1]  1  2  2 NA  4  5
+min_rank(desc(y))
+#> [1]  5  3  3 NA  2  1
+row_number(y)
+#> [1]  1  2  3 NA  4  5
+dense_rank(y)
+#> [1]  1  2  2 NA  3  4
+percent_rank(y)
+#> [1] 0.00 0.25 0.25   NA 0.75 1.00
+cume_dist(y)
+#> [1] 0.2 0.6 0.6  NA 0.8 1.0
+```
+
+
+## === important statistical operator ===
+Interquartile Range (IQR) definition
+![](https://upload.wikimedia.org/wikipedia/commons/1/1a/Boxplot_vs_PDF.svg)
+
+median absolute deviation:
+MAD = median(|Xi - median(Xi)|)
+```{r code_coba, echo=FALSE}
+# measures of location
+mean(), median(), 
+
+# measure of spread
+sd() # standard deviation
+IQR() # interquartile range
+mad() # median absolute deviator
+
+# measure of rank
+min()
+max()
+quartile(x, 0.25)
+
+# measure of position
+first() # x[1]
+last() # x[length(x)]
+nth(x,n) # x[n]
+
+# count
+n_distinct()
+
+not_cancelled %>% 
+  count(dest)
+
+or
+
+not_cancelled %>% 
+  group_by(dest) %>% 
+  summarise(n = n_distinct(carrier)) %>% 
+  #arrange(desc(n))
+```
+
+*5.6.5 Grouping by variables*
+think carefully if you want to do this for mean and variance, for count it's okaay
+```{r coba code, echo=FALSE}
+# multigroup summarise
+# save as daily
+daily <- group_by(flights, year, month, day)
+(per_day   <- summarise(daily, flights = n()))
+# save as monthly
+(per_month <- summarise(per_day, flights = sum(flights)))
+# save as yearly
+(per_year <- summarise(per_month, flights = sum(flights)))
+```
+
+
+*5.7.1 Grouped mutates (and filters)*
+```{r 5.7.1, echo=FALSE}
+# find the worst members of each grup
+flights %>% 
+  group_by(year, month, day) %>%
+  filter(rank(desc(arr_delay)) < 10)
+
+# find all groups bigger or smaller than a treshold
+popular_dests <- flights %>% 
+  group_by(dest) %>% 
+  filter(n() < 10)
+popular_dests
+
+# standardise some variables
+popular_dests %>% 
+  filter(arr_delay > 0) %>%
+  mutate(prop_delay = arr_delay / sum(arr_delay)) %>%
+  select(year:day, dest, arr_delay, prop_delay)
+```

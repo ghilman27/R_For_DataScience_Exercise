@@ -1,0 +1,365 @@
+---
+title: "12_Exercise_R-For-DataScientist"
+author: "Ghilman Al Fatih"
+date: "1/30/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('tidyverse')
+```
+
+# ------------------- 12.2.1 Exercise -------------------------
+```{r sample table}
+table1
+#> # A tibble: 6 x 4
+#>   country      year  cases population
+#>   <chr>       <int>  <int>      <int>
+#> 1 Afghanistan  1999    745   19987071
+#> 2 Afghanistan  2000   2666   20595360
+#> 3 Brazil       1999  37737  172006362
+#> 4 Brazil       2000  80488  174504898
+#> 5 China        1999 212258 1272915272
+#> 6 China        2000 213766 1280428583
+
+table2
+#> # A tibble: 12 x 4
+#>   country      year type           count
+#>   <chr>       <int> <chr>          <int>
+#> 1 Afghanistan  1999 cases            745
+#> 2 Afghanistan  1999 population  19987071
+#> 3 Afghanistan  2000 cases           2666
+#> 4 Afghanistan  2000 population  20595360
+#> 5 Brazil       1999 cases          37737
+#> 6 Brazil       1999 population 172006362
+#> # … with 6 more rows
+
+table3
+#> # A tibble: 6 x 3
+#>   country      year rate             
+#> * <chr>       <int> <chr>            
+#> 1 Afghanistan  1999 745/19987071     
+#> 2 Afghanistan  2000 2666/20595360    
+#> 3 Brazil       1999 37737/172006362  
+#> 4 Brazil       2000 80488/174504898  
+#> 5 China        1999 212258/1272915272
+#> 6 China        2000 213766/1280428583
+
+# Spread across two tibbles
+
+table4a  # cases
+#> # A tibble: 3 x 3
+#>   country     `1999` `2000`
+#> * <chr>        <int>  <int>
+#> 1 Afghanistan    745   2666
+#> 2 Brazil       37737  80488
+#> 3 China       212258 213766
+
+table4b  # population
+#> # A tibble: 3 x 3
+#>   country         `1999`     `2000`
+#> * <chr>            <int>      <int>
+#> 1 Afghanistan   19987071   20595360
+#> 2 Brazil       172006362  174504898
+#> 3 China       1272915272 1280428583
+
+```
+
+
+## 1. Using prose, describe how the variables and observations are organised in each of the sample tables.
+in `table1`, each variables have its own column, each observation has its own row, and every values correspond to its own cell with corresponding variables and observation.
+
+in `table2`, there are a variable (`count`) which is actually a value of `cases` and `population` variable. So an observation (unique row) is scattered in multiple row.
+
+in `table3`, values of two variables is contained in a single column
+
+in `table4` both `a` and `b`, a variable (`case` and `population`) is scattered in multiple column
+
+
+## 2. Compute the `rate` for `table2`, and `table4a` + `table4b`. You will need to perform four operations:
+1. Extract the number of TB cases per country per year.
+2. Extract the matching population per country per year.
+3. Divide cases by population, and multiply by 10000.
+4. Store back in the appropriate place.
+5. Which representation is easiest to work with? Which is hardest? Why?
+
+```{r soal_2_code, echo=FALSE}
+# Rate from table2
+table2 %>%
+  spread(key = type, value = count) %>%
+  group_by(country, year) %>%
+  summarise(rate = cases / population * 10000) %>%
+  spread(key = year, value = rate)
+
+# Rate from table
+tibble(
+  country = table4a$country,
+  `1999` = table4a[["1999"]] / table4b[["1999"]] * 10000,
+  `2000` = table4a[["2000"]] / table4b[["2000"]] * 10000
+)
+```
+
+## 3. Recreate the plot showing change in cases over time using `table2` instead of `table1`. What do you need to do first?
+```{r soal_3_code, echo=FALSE}
+table2 %>%
+  filter(type == "cases") %>%
+  ggplot(aes(x = year, y = count, color = country)) + geom_line() + geom_point() + 
+  scale_x_continuous(breaks = unique(table2$year))
+```
+
+
+# ------------------- 12.3.3 Exercise -------------------------
+## 1. Why are `gather()` and `spread()` not perfectly symmetrical?
+Carefully consider the following example:
+```{r soal_1}
+stocks <- tibble(
+  year   = c(2015, 2015, 2016, 2016),
+  half  = c(   1,    2,     1,    2),
+  return = c(1.88, 0.59, 0.92, 0.17)
+)
+
+stocks %>%
+  spread(year, return) %>%
+  gather("year", "return", `2015`:`2016`)
+
+# using convert argument
+stocks %>%
+  spread(year, return, convert = TRUE) %>%
+  gather("year", "return", `2015`:`2016`, convert = TRUE)
+
+stocks
+```
+(Hint: look at the variable types and think about column names.)
+Both spread() and gather() have a convert argument. What does it do?
+
+It's not completely symmetrical because column type information is lost (changing). 
+Convert will guess the type of variable, but sometimes its fail to deliver the right result, for example, year converted to integer from doubles
+
+## 2. Why does this code fail?
+It's because 1999 and 2000 are not a valid column names, we should add `
+```{r soal_2}
+table4a %>% 
+  gather(`1999`, `2000`, key = "year", value = "cases")
+#success
+
+table4a %>% 
+  gather(1999, 2000, key = "year", value = "cases")
+#> Error in inds_combine(.vars, ind_list): Position must be between 0 and n
+```
+
+
+## 3. Why does spreading this tibble fail? How could you add a new column to fix the problem?
+```{r soal_3}
+people <- tribble(
+  ~name,             ~key,    ~value,
+  #-----------------|--------|------
+  "Phillip Woods",   "age",       45,
+  "Phillip Woods",   "height",   186,
+  "Phillip Woods",   "age",       50,
+  "Jessica Cordero", "age",       37,
+  "Jessica Cordero", "height",   156
+)
+```
+it fail because the name of variable is `key` and `value`
+we could rename the column and try to spread again
+
+or just create a new column with row number as an observation as a new indicator for key
+observation is unique to each combination of `name` and `key` variable, this is the key
+
+```{r soal_3_code}
+people %>%
+  group_by(name, key) %>%
+  mutate(n_observation = row_number()) %>%
+  ungroup() %>%
+  spread(key, value)
+```
+
+## 4. Tidy the simple tibble below. Do you need to spread or gather it? What are the variables?
+variables: pregnant <chr>, gender <chr>, cases <dbl>
+```{r soal_4_code}
+preg <- tribble(
+  ~pregnant, ~male, ~female,
+  "yes",     NA,    10,
+  "no",      20,    12
+)
+
+preg %>%
+  gather(male:female, key = "gender", value = "cases", na.rm = TRUE)
+```
+
+
+
+# ------------------- 12.4.3 Exercise -------------------------
+
+## 1. What do the extra and fill arguments do in `separate()`? Experiment with the various options for the following two toy datasets.
+`extra` control what to do to redundant data, for example in tibble 1, we can drop value "g" with warning ("warn"), without warning ("drop"), or just merge redundant value on the last column ("merge")
+
+`fill` control what to do with missing data, for example in tibble 2, we can filled NA with warning ("warn"), fill missing value on the last (right) column ("right"), fill missing value on the first (left) column ("left")
+
+```{r soal_1}
+# tibble 1
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>% 
+  separate(x, c("one", "two", "three"), extra = "merge")
+
+# tibble 2
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>% 
+  separate(x, c("one", "two", "three"), fill = "left")
+```
+
+## 2. Both `unite()` and `separate()` have a remove argument. What does it do? Why would you set it to `FALSE`?
+set `remove` to FALSE to include the input value
+```{r soal_2}
+tibble(x = c("a,b,c", "d,e,f", "h,i,j")) %>% 
+  separate(x, c("one", "two", "three"), remove = FALSE)
+# A tibble: 3 x 4
+#   x     one   two   three
+#   <chr> <chr> <chr> <chr>
+# 1 a,b,c a     b     c    
+# 2 d,e,f d     e     f    
+# 3 h,i,j h     i     j 
+
+tibble(x = c("a,b,c", "d,e,f", "h,i,j")) %>% 
+  separate(x, c("one", "two", "three")) %>%
+  unite(new, one, two, three, remove = FALSE)
+# A tibble: 3 x 4
+#   new   one   two   three
+#   <chr> <chr> <chr> <chr>
+# 1 a_b_c a     b     c    
+# 2 d_e_f d     e     f    
+# 3 h_i_j h     i     j 
+```
+
+
+## 3. Compare and contrast `separate()` and `extract()`. Why are there three variations of separation (by position, by separator, and with groups), but only one unite?
+`separate()` adds flexibility for people who don't understand regex to specify the separation criterion for separating column
+`extract()` use regex to specify how to separate column.
+
+`separate()` are separating variable by three variation, wheter by a unique separator, by characther position, or groups. Why there are variations in separation? Because R needs to know the pattern to be used in separating a string.
+but `unite()` on the other hand has separated input by columns. 
+
+
+# ------------------- 12.5.1 Exercise -------------------------
+
+## 1. Compare and contrast the fill arguments to `spread()` and `complete()`.
+
+fill arguments input in `spread()` is a value to be imputed in explicit or implicit missing values.
+fill arguments input in `complete()` is a list of value for each variables.
+
+```{r soal_1_code}
+stocks <- tibble(
+  year   = c(2015, 2015, 2015, 2015, 2016, 2016, 2016),
+  qtr    = c(   1,    2,    3,    4,    2,    3,    4),
+  return = c(1.88, 0.59, 0.35,   NA, 0.92, 0.17, 2.66)
+)
+
+stocks %>% 
+  spread(year, return, fill = 0)
+
+stocks %>% 
+  complete(year, qtr, fill = list(return = 0, qtr = 0))
+```
+
+## 2. What does the direction argument to `fill()` do?
+deciding whether NA values should be replaced by previous value ("down") or next value ("up")
+```{r soal_2}
+stocks %>%
+  complete(year, qtr) %>%
+  fill(return, .direction = c("up"))
+```
+
+
+# ------------------- 12.6.1 Exercise -------------------------
+
+```{r previous code}
+who1 <- who %>%
+  gather(new_sp_m014:newrel_f65, key = "key", value = "cases", na.rm = TRUE)
+glimpse(who1)
+#> Observations: 76,046
+#> Variables: 6
+#> $ country <chr> "Afghanistan", "Afghanistan", "Afghanistan", "Afghanista…
+#> $ iso2    <chr> "AF", "AF", "AF", "AF", "AF", "AF", "AF", "AF", "AF", "A…
+#> $ iso3    <chr> "AFG", "AFG", "AFG", "AFG", "AFG", "AFG", "AFG", "AFG", …
+#> $ year    <int> 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 20…
+#> $ key     <chr> "new_sp_m014", "new_sp_m014", "new_sp_m014", "new_sp_m01…
+#> $ cases   <int> 0, 30, 8, 52, 129, 90, 127, 139, 151, 193, 186, 187, 200…
+who2 <- who1 %>%
+  mutate(key = stringr::str_replace(key, "newrel", "new_rel"))
+who3 <- who2 %>%
+  separate(key, c("new", "type", "sexage"), sep = "_")
+who3
+#> # A tibble: 76,046 x 8
+#>   country     iso2  iso3   year new   type  sexage cases
+#>   <chr>       <chr> <chr> <int> <chr> <chr> <chr>  <int>
+#> 1 Afghanistan AF    AFG    1997 new   sp    m014       0
+#> 2 Afghanistan AF    AFG    1998 new   sp    m014      30
+#> 3 Afghanistan AF    AFG    1999 new   sp    m014       8
+#> 4 Afghanistan AF    AFG    2000 new   sp    m014      52
+#> 5 Afghanistan AF    AFG    2001 new   sp    m014     129
+#> 6 Afghanistan AF    AFG    2002 new   sp    m014      90
+#> # … with 7.604e+04 more rows
+who3 %>%
+  count(new)
+#> # A tibble: 1 x 2
+#>   new       n
+#>   <chr> <int>
+#> 1 new   76046
+who4 <- who3 %>%
+  select(-new, -iso2, -iso3)
+who5 <- who4 %>%
+  separate(sexage, c("sex", "age"), sep = 1)
+who5
+#> # A tibble: 76,046 x 6
+#>   country      year type  sex   age   cases
+#>   <chr>       <int> <chr> <chr> <chr> <int>
+#> 1 Afghanistan  1997 sp    m     014       0
+#> 2 Afghanistan  1998 sp    m     014      30
+#> 3 Afghanistan  1999 sp    m     014       8
+#> 4 Afghanistan  2000 sp    m     014      52
+#> 5 Afghanistan  2001 sp    m     014     129
+#> 6 Afghanistan  2002 sp    m     014      90
+#> # … with 7.604e+04 more rows
+```
+
+## 1. In this case study I set `na.rm = TRUE` just to make it easier to check that we had the correct values. Is this reasonable? Think about how missing values are represented in this dataset. Are there implicit missing values? What’s the difference between an NA and zero?
+
+I think it's reasonable enough. The reason is no cases is explicitly stated in the data with values = 0. So NA basicly is no data, then we can turn this explicitly stated missing value into implicit.
+```{r soal_1_code}
+who %>%
+  gather(new_sp_m014:newrel_f65, key = "key", value = "cases", na.rm = TRUE) %>%
+  mutate(key = stringr::str_replace(key, "newrel", "new_rel")) %>% tail
+```
+
+## 2. What happens if you neglect the `mutate()` step? `(mutate(key = stringr::str_replace(key, "newrel", "new_rel")))`
+If we remove that step, then we can't separate this type code (new / old) with type of TB (rel / ep / sn / sp)
+```{r soal_2_code}
+who %>%
+  gather(new_sp_m014:newrel_f65, key = "key", value = "cases", na.rm = TRUE) %>%
+  mutate(key = stringr::str_replace(key, "newrel", "new_rel")) %>% tail
+```
+
+## 3. I claimed that `iso2` and `iso3` were redundant with country. Confirm this claim.
+There is no iso2 or iso3 that represent different country, confirmed
+```{r soal_3_code}
+# confirm is there any iso2 or iso3 code that represent the same country
+who2 %>%
+  select(country, iso2, iso3) %>%
+  distinct() %>%
+  group_by(country) %>%
+  count() %>%
+  filter(n > 1)
+```
+
+## 4. For each `country`, `year`, and `sex` compute the total number of cases of TB. Make an informative visualisation of the data.
+informative visualisation for this kind of problem can be achieved by plotting spatial map, but I dunno the coordinate
+```{r soal_4_code}
+who5 %>%
+  ggplot(aes(x = year, y = cases, color = country)) + geom_line() + facet_wrap(~sex)
+
+```
+
+
+
+
+
+

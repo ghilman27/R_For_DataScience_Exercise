@@ -1,0 +1,167 @@
+---
+title: "15_Exercise_R-For-DataScientist"
+author: "Ghilman Al Fatih"
+date: "2/14/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(forcats)
+```
+
+
+# ------------------- 15.3.1 Exercise -------------------------
+## 1. Explore the distribution of `rincome` (reported  income). What makes the default bar chart hard to understand? How could you improve the plot?
+
+default chart is hard to understand because of overlapping labels, too much variable on horizontal axis, there are `no answer` response that don't need to be included in the chart. The factor levels also confusing
+```{r soal_1_code}
+gss_cat %>%
+  ggplot(aes(x = rincome)) + 
+  geom_bar()
+
+```
+
+I propose this change to improve the readability of the chart.
+
+```{r soal_1_code_2}
+gss_cat %>% 
+  filter(!rincome %in% c('Not applicable', 'Refused', "Don't know", 'No answer')) %>%
+  mutate(rincome = fct_recode(rincome, "Less than $1000" = "Lt $1000"),
+         rincome = factor(rincome, levels = rev(levels(rincome)))) %>%
+  ggplot(aes(x = rincome)) +
+  geom_bar() + 
+  coord_flip() +
+  labs(y = "Number of Report", x = "Reported Income Range", title = "Distribution of Reported Income")
+```
+
+## 2. What is the most common `relig` in this survey? What’s the most common `partyid`?
+The most common religion is protestant and common party is independent
+```{r soal_2_code}
+gss_cat %>%
+  count(relig) %>% arrange(desc(n)) %>% head(1)
+
+gss_cat %>%
+  count(partyid) %>% arrange(desc(n)) %>% head(1)
+```
+
+## 3. Which `relig` does `denom` (denomination) apply to? How can you find out with a table? How can you find out with a visualisation?
+First we remove all no responses answer
+```{r soal_3_code}
+unique(gss_cat$relig) #to remove -> None, No answer, Don't know
+unique(gss_cat$denom) #to remove -> No answer, Don't know, No denomination, Not applicable
+```
+
+Then we figure it out which religion does denomination apply to. The answer is Protestant
+```{r soal_3_code_2}
+gss_cat %>%
+  filter(!denom %in% c('Not applicable', "Don't know", 'No answer', 'No denomination') & !relig %in% c('None','No answer', "Don't know")) %>%
+  distinct(relig)
+```
+
+For finding out with visualization. We can count how many denomination that each religion have. But it turns out that x axis only have one religion, which is Protestant.
+```{r soal_3_code_3}
+gss_cat %>%
+  filter(!denom %in% c('Not applicable', "Don't know", 'No answer', 'No denomination') & !relig %in% c('None','No answer', "Don't know")) %>%
+  count(relig, denom) %>%
+  ggplot(aes(x = relig, y = denom, size = n)) +
+  geom_point()
+```
+
+
+# ------------------- 15.4.1 Exercise -------------------------
+## 1. There are some suspiciously high numbers in `tvhours`. Is the mean a good summary?
+I think the mean is not a good summary, I prefer median. Because mean easily affected by outlier.
+```{r soal_1_code}
+gss_cat %>%
+  ggplot() +
+  geom_histogram(aes(x = tvhours), na.rm = TRUE, binwidth = 1)
+
+```
+
+## 2. For each factor in `gss_cat` identify whether the order of the levels is arbitrary or principled.
+There are six factors in `gss_cat` which is `marital`, `race`, `rincome`, `partyid`, `relig`, `denom`
+
+`marital` is arbitrary. No order in level, even in frequency of marital status
+```{r marital}
+levels(gss_cat$marital)
+gss_cat %>% ggplot(aes(marital)) + geom_bar()
+```
+
+`race` is principled. It ordered by frequency of race
+```{r race}
+gss_cat %>% ggplot(aes(race)) + geom_bar()
+levels(gss_cat$race)
+```
+
+`rincome` is principled. It ordered from higher range - less range of income
+```{r rincome}
+levels(gss_cat$rincome)
+```
+
+`partyid` is principled. It ordered from strong republican, independent, and then strong democrat
+```{r partyid}
+levels(gss_cat$partyid)
+```
+
+`relig` is arbitrary. No clear ordering from levels and frequency
+```{r relig}
+levels(gss_cat$relig)
+gss_cat %>% ggplot() + geom_barh(aes(y=relig))
+
+```
+
+`denom` is arbitrary. No clear order
+```{r denom}
+levels(gss_cat$denom)
+gss_cat %>% ggplot() + geom_barh(aes(y=denom))
+```
+
+
+## 3. Why did moving “Not applicable” to the front of the levels move it to the bottom of the plot?
+Because the position on the plot are determined by factor level. So, if we moving "Not applicable" to the front of the levels with `fct_relevel()`, it will move "Not applicable" to the bottom of the plot
+
+
+# ------------------- 15.5.1 Exercise -------------------------
+## 1. How have the proportions of people identifying as Democrat, Republican, and Independent changed over time?
+Other: No response or other party
+democrat, republican, and independent
+
+The visualisation result in decreasing republican supporter from 2004 to 2012.
+Other party have pretty stable proportion
+```{r soal_1_code}
+gss_cat %>%
+  mutate(partyid = fct_collapse(partyid,
+                                other = c("No answer", "Don't know", "Other party"),
+                                democrat = c("Not str democrat", "Strong democrat"),
+                                republican = c("Strong republican", "Not str republican"),
+                                independent = c("Ind,near rep", "Independent", "Ind,near dem")
+                                )
+         ) %>%
+  count(year, partyid) %>%
+  group_by(year) %>%
+  mutate(
+    prop = n / sum(n)
+  ) %>%
+  ggplot(aes(x = year, y = prop, color = partyid)) +
+  geom_line() + geom_point()
+```
+
+## 2. How could you collapse rincome into a small set of categories?
+```{r soal_2_code}
+gss_cat %>%
+  mutate(
+    rincome = 
+      fct_collapse(rincome,
+                   Unknown = c("No answer", "Don't know", "Refused", "Not applicable"),
+                   `Less than 5000` = c("$4000 to 4999", "$3000 to 3999", "$1000 to 2999", "Lt $1000" ),
+                   `$5000 - 10000` = c("$8000 to 9999", "$7000 to 7999", "$6000 to 6999", "$5000 to 5999")
+                   ),
+    rincome = factor(rincome, levels = rev(levels(rincome)))
+  ) %>%
+  ggplot() +
+  geom_barh(aes(y = rincome))
+```
+
+

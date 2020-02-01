@@ -1,0 +1,577 @@
+---
+title: "21_Exercise_R-For-DataScientist_Fatih"
+author: "Ghilman Al Fatih"
+date: "3/1/2019"
+output: html_document
+---
+
+# ---- PREREQUISITES ----
+I need this packages to convert singular words to plural words on `lyric_99bottles()` function.
+```{r needed_package}
+devtools::install_github("hrbrmstr/pluralize")
+library('pluralize')
+```
+
+General requirement
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('tidyverse')
+library('stringr')
+library('tictoc')
+```
+
+# ------------------- 21.2.1 Exercise -------------------------
+
+## 1. Write for loops to:
+1. Compute the mean of every column in mtcars.
+```{r 21.2.1 answer1.1}
+mean_df <- function(df) {
+  output <- vector("double", ncol(df))
+  for (i in seq_along(df)) {
+    if (is_double(df[[i]]) | is_integer(df[[i]])) {
+      output[[i]] <- mean(df[[i]])
+    } else {
+      output[[i]] <- NA
+    }
+  }
+  return(output)
+}
+
+mean_df(mtcars)
+```
+
+2. Determine the type of each column in `nycflights13::flights`.
+```{r 21.2.1 answer1.2}
+type_df <- function(df) {
+  output <- vector("list", ncol(df))
+  names(output) <- names(df)
+  for (i in seq_along(df)) {
+    output[[i]] <- class(df[[i]])
+  }
+  return(output)
+}
+
+type_df(nycflights13::flights)
+```
+
+3. Compute the number of unique values in each column of iris.
+```{r 21.2.1 answer1.3}
+data('iris')
+output <- vector("double", length = ncol(iris))
+names(output) <- names(iris)
+for (i in seq_along(iris)) {
+  output[[i]] <- length(unique(iris[[i]]))
+}
+output
+```
+
+4. Generate 10 random normals for each of  μ = −10 ,  0 ,  10, and  100.
+Think about the output, sequence, and body before you start writing the loop.
+```{r 21.2.1 answer1.4}
+u <- c(-10, 0, 10, 100)
+output <- vector("list", length(u))
+names(output) <- stringr::str_c("mean = ", u)
+for (i in seq_along(u)) {
+  output[[i]] <- rnorm(10, mean = u[i])
+}
+output
+```
+
+
+## 2. Eliminate the for loop in each of the following examples by taking advantage of an existing function that works with vectors:
+```{21.2.1 code2}
+out <- ""
+for (x in letters) {
+  out <- stringr::str_c(out, x)
+}
+
+x <- sample(100)
+sd <- 0
+for (i in seq_along(x)) {
+  sd <- sd + (x[i] - mean(x)) ^ 2
+}
+sd <- sqrt(sd / (length(x) - 1))
+
+x <- runif(100)
+out <- vector("numeric", length(x))
+out[1] <- x[1]
+for (i in 2:length(x)) {
+  out[i] <- out[i - 1] + x[i]
+}
+```
+
+first function
+```{r 21.2.1 answer2.1}
+x <- c('hello','bro','ganteng')
+stringr::str_c(x, collapse = "")
+```
+
+second function
+```{r 21.2.1 answer2.2}
+sd(sample(100))
+```
+
+third function
+```{r 21.2.1 answer2.3}
+x <- runif(100)
+cumsum(x)
+```
+
+## 3. Combine your function writing and for loop skills:
+
+For this exercise, I'll use this useful function for converting number to words. I found it on github, credit for the author.
+```{r Number2Words}
+  #https://github.com/ateucher/useful_code/blob/master/R/numbers2words.r
+  numbers2words <- function(x){
+    ## Function by John Fox found here: 
+    ## http://tolstoy.newcastle.edu.au/R/help/05/04/2715.html
+    ## Tweaks by AJH to add commas and "and"
+    helper <- function(x){
+      
+      digits <- rev(strsplit(as.character(x), "")[[1]])
+      nDigits <- length(digits)
+      if (nDigits == 1) as.vector(ones[digits])
+      else if (nDigits == 2)
+        if (x <= 19) as.vector(teens[digits[1]])
+      else trim(paste(tens[digits[2]],
+                      Recall(as.numeric(digits[1]))))
+      else if (nDigits == 3) trim(paste(ones[digits[3]], "hundred and", 
+                                        Recall(makeNumber(digits[2:1]))))
+      else {
+        nSuffix <- ((nDigits + 2) %/% 3) - 1
+        if (nSuffix > length(suffixes)) stop(paste(x, "is too large!"))
+        trim(paste(Recall(makeNumber(digits[
+          nDigits:(3*nSuffix + 1)])),
+          suffixes[nSuffix],"," ,
+          Recall(makeNumber(digits[(3*nSuffix):1]))))
+      }
+    }
+    trim <- function(text){
+      #Tidy leading/trailing whitespace, space before comma
+      text=gsub("^\ ", "", gsub("\ *$", "", gsub("\ ,",",",text)))
+      #Clear any trailing " and"
+      text=gsub(" and$","",text)
+      #Clear any trailing comma
+      gsub("\ *,$","",text)
+    }  
+    makeNumber <- function(...) as.numeric(paste(..., collapse=""))     
+    #Disable scientific notation
+    opts <- options(scipen=100) 
+    on.exit(options(opts)) 
+    ones <- c("", "one", "two", "three", "four", "five", "six", "seven",
+              "eight", "nine") 
+    names(ones) <- 0:9 
+    teens <- c("ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+               "sixteen", " seventeen", "eighteen", "nineteen")
+    names(teens) <- 0:9 
+    tens <- c("twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty",
+              "ninety") 
+    names(tens) <- 2:9 
+    x <- round(x)
+    suffixes <- c("thousand", "million", "billion", "trillion")     
+    if (length(x) > 1) return(trim(sapply(x, helper)))
+    helper(x)
+  }
+```
+
+1. Write a for loop that prints() the lyrics to the children’s song “Alice the camel”.
+```{r 21.2.1 answer3.1}
+lyric_alice <- function(n = 5) {
+  number <- c(numbers2words(n:1), 'no')
+  hump <- c(rep(' humps.', n-1), ' hump.', ' humps.')
+  
+  for (i in seq_along(number)) {
+    if (i<=n) {
+      cat(str_c("Alice the camel has ", rep(number[[i]], 3), hump[[i]], collapse = "\n"), "\n")
+      cat('Go Alice go! Boom, boom, boom!\n\n')
+    } else {
+      cat(str_c("Alice the camel has ", rep(number[[i]], 3), hump[[i]], collapse = "\n"), "\n")
+      cat('Cuz Alice was a horse!  Boom, boom, boom!\n\n')
+    }
+  }
+}
+
+lyric_alice(n = 3)
+```
+
+2. Convert the nursery rhyme “ten in the bed” to a function. Generalise it to any number of people in any sleeping structure.
+
+I still don't get what "sleeping structure" mean. Is it replacing "roll over" with any verb you want, or replace "bed" with "king size bed". But I'll only customize the number anyway.
+
+```{r 21.2.1 answer3.2}
+lyric_ten_in_bed <- function(n = 10) {
+  number <- numbers2words(n:1)
+  
+  for (i in seq_along(number)) {
+    if (i<n) {
+      cat(str_c("There were ", number[[i]], " in a bed", collapse = "\n"), "\n")
+      cat('And the little one said,\n"Roll over, roll over"\nSo they all rolled over\nAnd one fell out\n\n')
+    } else {
+      cat(str_c("There was ", number[[i]], " in a bed", collapse = "\n"), "\n")
+      cat('And the little one said,\n"Good night!"')
+    }
+  }
+}
+
+lyric_ten_in_bed(3)
+```
+
+3. Convert the song “99 bottles of beer on the wall” to a function. Generalise to any number of any vessel containing any liquid on any surface.
+
+```{r 21.2.1 answer3.3}
+lyric_99bottles <- function(n = 99, vessel = "bottle", liquid = "beer", surface = "wall") {
+ 
+  # -------------- Check pluralize package requirement -----------------
+  if (!require(pluralize)) {
+    devtools::install_github("hrbrmstr/pluralize")
+  }
+
+  # -------------- Repetitive sentence ----------------
+  sentence <- function(n, bottle = vessel, beer = liquid) {
+    if (n > 0) {
+      str_c(as.character(n), " ", pluralize::pluralize(bottle, n = n), " of ", beer)
+    } else {
+      str_c("No", " more ", pluralize::pluralize(bottle), " of ", beer)
+    }
+  }
+
+  onsurface <- str_c(" on the ", surface)
+  takeonedown <- "Take one down and pass it around, "
+  gotostore <- "Go to the store and buy some more, "
+  
+  # --------------- Generating the lyric ------------------
+  for (i in c(n:0)) {
+    if (i > 0) {
+      cat(str_c(sentence(i), onsurface, ", ", sentence(i), ".", collapse = "\n"), "\n")
+      cat(str_c(takeonedown, tolower(sentence(i-1)), onsurface, ".", collapse = "\n"), "\n\n")
+    } else {
+      cat(str_c(sentence(i), " on the ", surface, ", ", tolower(sentence(i)), "." , collapse = "\n"), "\n")
+      cat(str_c(gotostore, sentence(n), onsurface, "."))
+    }
+  }
+}
+
+lyric_99bottles(3, vessel = "cup", liquid = "coffee", surface = "table")
+```
+
+## 4. It’s common to see for loops that don’t preallocate the output and instead increase the length of a vector at each step:
+```{21.2.1 code4}
+output <- vector("integer", 0)
+for (i in seq_along(x)) {
+  output <- c(output, lengths(x[[i]]))
+}
+output
+```
+
+How does this affect performance? Design and execute an experiment.
+
+Without preallocate:
+```{r 21.2.1 answer4.1}
+tic()
+n <- 100000
+output <- vector("integer", 0)
+for (i in seq_len(n)) {
+  output <- c(output, i)
+}
+toc()
+
+# 19.39 sec elapsed
+```
+
+With preallocate:
+```{r 21.2.1 answer4.2}
+tic()
+n <- 100000
+output2 <- vector("integer", n)
+for (i in seq_len(n)) {
+  output2[[i]] <- i
+}
+toc()
+
+# 0.034 sec elapsed
+```
+
+I got 19.39 seconds without preallocate and 0.034 with preallocate.
+It really boost the performance
+
+
+# ------------------- 21.3.5 Exercise -------------------------
+
+## 1. Imagine you have a directory full of CSV files that you want to read in. You have their paths in a vector, `files <- dir("data/", pattern = "\\.csv$", full.names = TRUE)`, and now want to read each one with `read_csv()`. Write the for loop that will load them into a single data frame.
+
+I assume that this .csv files only have one array of unique df column, including the header. All .csv have same length. And I'll bind them using `bind_cols()`
+```{21.3.5 answer1}
+files <- dir("data/", pattern = "\\.csv$", full.names = TRUE)
+df <- vector("list", length(files))
+for (file in seq_along(files)) {
+  df[[file]] <- read_csv(files[[file]])
+}
+df <- bind_cols(df)
+```
+
+## 2. What happens if you use `for (nm in names(x))` and `x` has no names? What if only some of the elements are named? What if the names are not unique?
+
+If `x` has no name then the iteration will not happen
+```{r 21.3.5 answer2}
+x <- c(1,2,3)
+for (nm in names(x)) {
+  print(nm)
+  print(x[[nm]])
+}
+```
+
+If only some of the elements are named, the iteration will result an error
+```{21.3.5 answer2.1}
+x <- c(a = 1, 2, c = 3)
+for (nm in names(x)) {
+  print(nm)
+  print(x[[nm]])
+}
+
+# [1] "a"
+# [1] 1
+# [1] ""
+# Error in x[[nm]] : subscript out of bounds
+```
+
+If the names are not unique, we only can output the first duplicate name value
+```{r 21.3.5 answer2.2}
+x <- c(a = 1, a = 2, c = 3)
+for (nm in names(x)) {
+  print(nm)
+  print(x[[nm]])
+}
+```
+
+## 3. Write a function that prints the mean of each numeric column in a data frame, along with its name. For example, `show_mean(iris)` would print:
+
+```{21.3.5 code3}
+show_mean(iris)
+#> Sepal.Length: 5.84
+#> Sepal.Width:  3.06
+#> Petal.Length: 3.76
+#> Petal.Width:  1.20
+```
+
+(Extra challenge: what function did I use to make sure that the numbers lined up nicely, even though the variable names had different lengths?)
+
+```{r 21.3.5 answer3}
+show_mean <- function(df, decimal = 2) {
+  width <- max(str_length(names(df))) - str_length(names(df)) + 1
+  names(width) <- names(df)
+  format <- str_c('%.', decimal, 'f')
+  
+  for (col in names(df)) {
+    if (is.numeric(df[[col]])) {
+      cat(
+        str_c(col, ":", str_dup(" ", width[[col]]), sprintf(format, mean(df[[col]]))), 
+        "\n"
+        )
+    }
+  }
+}
+
+show_mean(iris)
+```
+
+## 4. What does this code do? How does it work?
+```{21.3.5 code4}
+trans <- list( 
+  disp = function(x) x * 0.0163871,
+  am = function(x) {
+    factor(x, labels = c("auto", "manual"))
+  }
+)
+for (var in names(trans)) {
+  mtcars[[var]] <- trans[[var]](mtcars[[var]])
+}
+```
+
+This code will:
+- mutate `disp` column in `mtcars` by multiplied it with 0.0163871.
+- change `am` type from integer to factor variable
+
+this code works by putting functions in a list with names specifically for desired column name. Then those list is called in a loop with `mtcars[[column_name]]` as `x` input.
+
+
+# ------------------- 21.4.1 Exercise -------------------------
+
+## 1. Read the documentation for `apply()`. In the 2d case, what two for loops does it generalise?
+`apply()` makes it easier to apply a function on 2d case (ex: matrix, etc.) without creating an actual loop. It can apply those function to column or row by `MARGIN` argument. 
+
+```{r 21.4.1 answer1}
+x <- cbind(x1 = 3, x2 = c(4:1, 2:5))
+dimnames(x)[[1]] <- letters[1:8]
+x
+
+# Apply mean for each row
+apply(x, 2, mean, trim = .2)
+
+# Apply mean for each column
+apply(x, 1, mean, trim = .2)
+```
+
+
+## 2. Adapt `col_summary()` so that it only applies to numeric columns You might want to start with an `is_numeric()` function that returns a logical vector that has a TRUE corresponding to each numeric column.
+
+```{r 21.4.1 answer2}
+col_summary <- function(df, fun) {
+  df_num <- df[sapply(df, is.numeric)]
+  out <- vector("double",  length(df_num))
+  names(out) <- names(df_num)
+  
+  for (i in seq_along(df_num)) {
+    out[i] <- fun(df_num[[i]])
+  }
+  out
+}
+
+col_summary(iris, mean)
+```
+
+
+# ------------------- 21.5.3 Exercise -------------------------
+
+## 1. Write code that uses one of the `map` functions to:
+
+1. Compute the mean of every column in `mtcars`.
+
+```{r 21.5.3 answer1.1}
+datasets::mtcars %>%
+  map_dbl(mean)
+```
+
+2. Determine the type of each column in `nycflights13::flights`.
+
+```{r 21.5.3 answer1.2}
+nycflights13::flights %>%
+  map_chr(typeof)
+
+```
+
+3. Compute the number of unique values in each column of `iris`.
+
+```{r 21.5.3 answer1.3}
+iris %>%
+  map_dbl(~length(unique(.)))
+```
+
+4. Generate 10 random normals for each of  μ = −10, 0, 10, and 100.
+
+```{r 21.5.3 answer1.4}
+mu <- c("mu = -10" = -10, "mu = -0" = 0, "mu = 10" = 10, "mu = 100" = 100)
+mu %>%
+  map(~ rnorm(n = 10, mean = .))
+  # map(rnorm, n = 10)
+```
+
+## 2. How can you create a single vector that for each column in a data frame indicates whether or not it’s a factor?
+```{r 21.5.3 answer2}
+map_lgl(iris, is.factor)
+```
+
+## 3. What happens when you use the map functions on vectors that aren’t lists? What does `map(1:5, runif)` do? Why?
+
+It will work *because* `map()` function work in any vectors (I showed it on previous two answers)
+```{r 21.5.3 answer3}
+map(1:5, runif)
+```
+
+This function create uniform distribution with length (1:5). It will map `1:5` to `runif()` so the code would be like
+```{21.5.3 code3}
+list(
+  runif(1), runif(2), runif(3), runif(4), runif(5)
+)
+
+```
+
+## 4. What does `map(-2:2, rnorm, n = 5)` do? Why? What does `map_dbl(-2:2, rnorm, n = 5)` do? Why?
+
+```{r 21.5.3 answer4}
+map(-2:2, rnorm, n = 5)
+```
+
+This function generate random array with normal distribution of mean = -2:2 and length = 5.
+`map_dbl(-2:2, rnorm, n = 5)` will return an error because the result of `map` will be converted to single double vector. It's impossible if n = 5, but if n = 1 it's possible.
+
+```{r 21.5.3 answer4.1}
+map_dbl(-2:2, rnorm, n = 1)
+```
+
+for alternative, use `flatten_dbl()` instead to flatten the list (like unnesting)
+```{r 21.5.3 answer4.2}
+flatten_dbl(map(-2:2, rnorm, n = 5))
+```
+
+## 5. Rewrite `map(x, function(df) lm(mpg ~ wt, data = df))` to eliminate the anonymous function.
+```{r 21.5.3 answer5}
+x <- split(iris, iris$Species)
+map(x, ~ lm(Sepal.Length ~ Sepal.Width, data = .))
+```
+
+
+# ------------------- 21.9.3 Exercise -------------------------
+
+## 1. Implement your own version of `every()` using a for loop. Compare it with `purrr::every()`. What does purrr’s version do that your version doesn’t?
+```{r 21.9.3 answer1}
+every_edit <- function(.x, .p, ...) {
+  
+  for (element in df) {
+    
+  }
+}
+
+```
+
+## 2. Create an enhanced `col_summary()` that applies a summary function to every numeric column in a data frame.
+
+## 3. A possible base R equivalent of `col_summary()` is:
+```{21.9.3 code3}
+col_sum3 <- function(df, f) {
+  is_num <- sapply(df, is.numeric)
+  df_num <- df[, is_num]
+
+  sapply(df_num, f)
+}
+```
+
+
+But it has a number of bugs as illustrated with the following inputs:
+
+```{21.9.3 code3.2}
+df <- tibble(
+  x = 1:3, 
+  y = 3:1,
+  z = c("a", "b", "c")
+)
+# OK
+col_sum3(df, mean)
+# Has problems: don't always return numeric vector
+col_sum3(df[1:2], mean)
+col_sum3(df[1], mean)
+col_sum3(df[0], mean)
+```
+
+What causes the bugs?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

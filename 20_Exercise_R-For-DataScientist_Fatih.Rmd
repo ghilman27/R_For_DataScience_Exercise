@@ -1,0 +1,273 @@
+---
+title: "20_Exercise_R-For-DataScientist_Fatih"
+author: "Ghilman Al Fatih"
+date: "2/27/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library('tidyverse')
+```
+
+
+# ------------------- 20.3.5 Exercise -------------------------
+
+## 1. Describe the difference between `is.finite(x)` and `!is.infinite(x)`.
+`is.finite()` is function to determine that the elements are finite (not infinite and not missing)
+`is.infinite()` is function to determine that the elements are infinite (`Inf` or `-Inf`)
+
+```{r 20.3.5 answer1}
+is.finite(c(NA, Inf, NaN, 1))
+is.infinite(c(NA, Inf, NaN, 1))
+```
+
+## 2. Read the source code for `dplyr::near()` (Hint: to see the source code, drop the `()`). How does it work?
+```{r 20.3.5 answer2}
+dplyr::near
+sqrt(2) ^ 2 == 2
+near(sqrt(2) ^ 2, 2)
+```
+So instead of comparing the two value, this function actually subtract those two values and then compare the difference to tolerance standard. those `.Machine$double.eps^0.5` can be explained by typing `?.Machine`. It's basically the smallest positive floating-point number `x` such that 1 + x != 1.
+
+Basicly we can set the tolerance level ourself. but the default is `.Machine$double.eps^0.5`
+
+## 3. A logical vector can take 3 possible values. How many possible values can an integer vector take? How many possible values can a double take? Use google to do some research.
+How many possible values can an integer vector take
+```{r 20.3.5 answer3}
+.Machine$integer.max
+```
+
+How many possible values can a double take
+```{r 20.3.5 answer3.2}
+.Machine$double.xmax
+```
+
+## 4. Brainstorm at least four functions that allow you to convert a double to an integer. How do they differ? Be precise.
+Generally we convert double to integer by rounding them. But I always get double type when I rounded them. The best way is to use `as.integer()`, it's the same as `floor()` but the type of variable is converted to integer instead of double
+```{r 20.3.5 answer4}
+# This function is flooring the number to nearest integer
+is_integer(as.integer(64.0))
+is_integer(round(64.0))
+is_integer(floor(64.0))
+is_integer(ceiling(64.0))
+is_integer(64.0 %/% 1)
+```
+
+## 5. What functions from the readr package allow you to turn a string into logical, integer, and double vector?
+`parse_logical()`, `parse_integer()`, `parse_double()`
+```{r 20.3.5 answer5}
+readr::parse_integer(c("1", "2", "3"))
+readr::parse_double(c("1", "2", "3.123"))
+readr::parse_logical(c("0","1"))
+```
+
+
+
+# ------------------- 20.4.6 Exercise -------------------------
+
+## 1. What does `mean(is.na(x))` tell you about a vector `x`? What about `sum(!is.finite(x))`?
+`mean(is.na(x))` is telling you about proportion of missing values on vector `x`
+```{r 20.4.6 answer1}
+mean(is.na(c(0, 1, 2, NA, Inf, NaN, 3, 4, 5, 6)))
+```
+
+`sum(!is.finite(x))` is telling you about total of non finite values on vector `x`
+```{r 20.4.6 answer1.2}
+sum(!is.finite(c(0, 1, 2, 3, NA, Inf, NaN)))
+```
+
+## 2. Carefully read the documentation of `is.vector()`. What does it actually test for? Why does `is.atomic()` not agree with the definition of atomic vectors above?
+`is.vector()` will return `TRUE` as long those vector doesn't have attributes other than names. So even list can result `TRUE`. But a dataframe which has names will return `FALSE`
+```{r 20.4.6 answer2}
+df <- data.frame(x = 1:3, y = 5:7)
+
+x <- c(a = 1, b = 2)
+is.vector(x) ## TRUE
+as.vector(x) ## [1] 1 2
+all.equal(x, as.vector(x)) ## FALSE
+
+# If it's containing name, it will return false
+is.list(df) ## TRUE
+is.vector(df) ## FALSE
+is.vector(df, mode = "list") ## FALSE
+is.vector(list(), mode = "list") ## TRUE
+
+```
+
+`is.atomic()` if the object is atomic type or not. Even if it has attributes, as long it's not name
+```{r 20.4.6 answer2.2}
+is.atomic(c(a = 1, b = 3)) # TRUE
+is.atomic(list()) # FALSE
+is.atomic(1:2) # TRUE
+```
+
+## 3. Compare and contrast `setNames()` with `purrr::set_names()`.
+It's need vector and names vector input
+```{r 20.4.6 answer3}
+setNames( 1:3, c("foo", "bar", "baz") )
+purrr::set_names( 1:3, c("foo", "bar", "baz") )
+```
+
+`purrr:set_names()` can handle separated names input, `setNames()` don't
+```{r 20.4.6 answer3.1}
+purrr::set_names( 1:3, "foo", "bar", "baz" )
+#setNames( 1:3, "foo", "bar", "baz" ) # ERROR
+```
+
+on naming vector by itself, `setNames` needs to specify `nm` argument, `purrr::set_names()` don't
+```{r 20.4.6 answer3.2}
+setNames(nm = c("foo", "bar", "baz"))
+purrr::set_names(c("foo", "bar", "baz"))
+```
+
+## 4. Create functions that take a vector as input and returns:
+
+1. The last value. Should you use `[` or `[[`?
+```{r 20.4.6 answer4}
+last_value <- function(x) {
+  x[[length(x)]]
+}
+
+last_value(c(0,1,2,3))
+```
+
+2. The elements at even numbered positions.
+```{r 20.4.6 answer4.2}
+even_index <- function(x) {
+  x[ 1:length(x) %% 2 == 0 ]
+}
+
+even_index(0:10)
+```
+
+3. Every element except the last value.
+```{r 20.4.6 answer4.3}
+except_last <- function(x) {
+  x[-length(x)]
+}
+
+except_last(0:10)
+```
+
+4. Only even numbers (and no missing values).
+```{r 20.4.6 answer4.4}
+even_values <- function(x, na.rm = TRUE, finite = TRUE) {
+  if (finite) {
+    x[!is.infinite(x) & !is.na(x) & (x %% 2 == 0)]
+  } else if (na.rm) {
+    x[!is.na(x) & (x %% 2 == 0)]
+  } else {
+    x[x %% 2 == 0]
+  }
+}
+
+even_values(c(0, 1, 2, NA, Inf, NaN, 3, 4, 5, 6))
+even_values(c(0, 1, 2, NA, Inf, NaN, 3, 4, 5, 6), na.rm = FALSE)
+even_values(c(0, 1, 2, NA, Inf, NaN, 3, 4, 5, 6), finite = FALSE)
+even_values(c(0, 1, 2, NA, Inf, NaN, 3, 4, 5, 6), na.rm = FALSE, finite = FALSE)
+```
+
+
+## 5. Why is `x[-which(x > 0)]` not the same as `x[x <= 0]`?
+
+forget about `which()`
+```{r 20.4.6 answer5}
+which(c(0,1,2,3) < 2)
+```
+
+So it outputs index of values which meet the criterion
+
+```{r 20.4.6 answer5.2}
+x <- c(-1, 0, 1, Inf, -Inf, NaN, NA)
+x[-which(x > 0)]
+x[x <= 0]
+```
+
+We have different result with `NaN` and `NA`
+
+```{r 20.4.6 answer5.3}
+x <= 0
+```
+OK it's logic though, missing values would return `NA`
+
+```{r 20.4.6 answer5.4}
+which(x > 0)
+```
+
+Now I get it, it only drop values on index 3 and 4. So that's why it will return `NaN` values instead of `NA`
+
+## 6. What happens when you subset with a positive integer that’s bigger than the length of the vector? What happens when you subset with a name that doesn’t exist?
+
+```{r 20.4.6 answer6}
+x <- c(a = 1, b = 2)
+x[1:4]
+x[letters[1:4]]
+# x[[3]] #ERROR
+# x[["c"]] #ERROR
+```
+
+It will return NA. But it gives error if we use `[[]]` selection (one value)
+
+# ------------------- 20.5.4 Exercise -------------------------
+## 1. Draw the following lists as nested sets:
+```{20.5.4 code1}
+list(a, b, list(c, d), list(e, f))
+list(list(list(list(list(list(a))))))
+```
+
+Top for first case, bottom for second case
+
+![](https://drive.google.com/file/d/1P5BO0BUs_lRTPGR4aLMrm9NwzsN_uO2h/view?usp=sharing)
+
+## 2. What happens if you subset a tibble as if you’re subsetting a list? What are the key differences between a list and a tibble?
+```{r 20.5.4 answer2}
+x <- tibble(a = 1:2, b = 3:4)
+x[[1]] # int vector
+x[2] # tibble column a
+x[1, 2] # tibble row 1 column 2
+x[[1]][2] # integer on vector a
+```
+It's behave the same as list, but like struct & table in MATLAB, list & tibble differ in flexibility of values contained. table and tibble can only contain value which has the same length, but struct and list is more flexible, even can store another array in array with different length. This is so useful in storing for instance sound response amplitude array, or seismic wave.
+
+# ------------------- 20.7.4 Exercise -------------------------
+
+## 1. What does hms::hms(3600) return? How does it print? What primitive type is the augmented vector built on top of? What attributes does it use?
+```{r 20.7.4 answer1}
+(x <- hms::hms(3600))
+unclass(x)
+cat('-----\n')
+class(x)
+cat('-----\n')
+typeof(x)  #primitive (atomic)
+cat('-----\n')
+attributes(x)
+```
+
+Returned custom class which actually a time difference `difftime`. primitive returned double. attribute is `class` and `units`
+
+## 2. Try and make a tibble that has columns with different lengths. What happens?
+```{r 20.7.4 answer2}
+# tibble(a = 1:2, b = 1:4) #ERROR
+```
+
+I can't create it with different length, but the error said only length one are recycled
+
+```{r 20.7.4 answer2.1}
+tibble(a = 1, b = 1:4)
+```
+
+Yap, I can create a tibble with different length if the imbalanced one only have one value.
+
+## 3. Based on the definition above, is it ok to have a list as a column of a tibble?
+```{r 20.5.4 answer3}
+tibble(a = 1:3, b = list(1, c(9,0), "a"))
+```
+
+It OK if the list has the same length
+
+```{r 20.5.4 answer3.2}
+# tibble(a = 1:3, b = list(1, c(9,0))) #ERROR
+```
+
+It's not okay if the list has different length
+
